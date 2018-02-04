@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -18,48 +19,41 @@ namespace MyWebScraper
         private readonly HtmlWeb _web = new HtmlWeb();
         public Form1()
         {
-            InitializeComponent();
-            InitTable();
+            InitializeComponent(); 
         }
 
         private void InitTable()
         {
             _table = new DataTable("ScrapedInfoCollector");
-            _table.Columns.Add("Starts With", typeof(string));
-            _table.Columns.Add("Idiom", typeof(string));
+            _table.Columns.Add("Phrasal Verb", typeof(string));
+            _table.Columns.Add("Meaning", typeof(string));
             dataGridView1.DataSource = _table;
+            dataGridView1.Columns[0].Width = 150;
+            dataGridView1.Columns[1].Width = 500;
         }
 
         private async Task<List<AlphaAndIdiom>> IdiomsFromPage(string page)
         {
-            string url = "http://www.englishclub.com/ref/Phrasal_Verbs/" + page + "/";
+            string url = "https://www.englishclub.com/ref/Phrasal_Verbs/" + page + "/";
             var doc = await Task.Factory.StartNew(() => _web.Load(url));
-            var alphaNodes = doc.DocumentNode.SelectNodes("/html/body/div[2]/main//div/h3/a");
-
-            // /html/body/div[2]/main/div[3]/h3/a
-            // /html/body/div[2]/main/div[4]/h3/a
-
-            // /html/body/div[2]/main/div[3]/div
-            // /html/body/div[2]/main/div[4]/div
-
-            var idiomNodes = doc.DocumentNode.SelectNodes("/html/body/div[2]/main//div/div");
+            var alphaNodes = doc.DocumentNode.SelectNodes("//html//body//div//main//div//h3");
+            var idiomNodes = doc.DocumentNode.SelectNodes("//html//body//div//main//div//div");
 
             if (alphaNodes == null || idiomNodes == null)
             {
-                MessageBox.Show(@"Hey, XPATH didn't bring you anything");
+                MessageBox.Show(@"Finished fetching all records");
                 return new List<AlphaAndIdiom>();
             }
 
             var alphabets = alphaNodes.Select(node => node.InnerText);
             var idioms = idiomNodes.Select(node => node.InnerText);
 
-
-            MessageBox.Show(@"I made it through the task");
             return alphabets.Zip(idioms, (alphabet, idiom) => new AlphaAndIdiom() {Alphabet = alphabet, Idiom = idiom}).ToList();
         }
 
         private async void Form1_Load(object sender, EventArgs e)
         {
+            InitTable();
             int enumInit = 0;
             string page = Enum.GetName(typeof(Alphabets), enumInit);
             var idiomsFromPage = await IdiomsFromPage(page);
